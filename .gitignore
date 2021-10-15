@@ -1,0 +1,6 @@
+pkg
+bin
+.vscode
+src/mule-app-analyser/vendor
+src/mule-app-analyser/go.sum
+src/mule-app-analyser/reports

@@ -1,0 +1,567 @@
+{
+  "muleProjectName": "mule-customer-api",
+  "muleAppPath": "/Users/ken/AnypointStudio/demo/mule-customer-api/src/main/app/",
+  "muleXMLs": [
+    "api.xml",
+    "batch-file-to-db.xml",
+    "batch-sync-db-sfdc.xml",
+    "common-customer-flows.xml"
+  ],
+  "muleVersion": "3.9.4.ee",
+  "configs": [
+    {
+      "name": "api-httpListenerConfig",
+      "attributes": [
+        {
+          "Space": "",
+          "Key": "name",
+          "Value": "api-httpListenerConfig"
+        },
+        {
+          "Space": "",
+          "Key": "host",
+          "Value": "0.0.0.0"
+        },
+        {
+          "Space": "",
+          "Key": "port",
+          "Value": "8081"
+        },
+        {
+          "Space": "doc",
+          "Key": "name",
+          "Value": "HTTP Listener Configuration"
+        }
+      ]
+    },
+    {
+      "name": "api-config",
+      "attributes": [
+        {
+          "Space": "",
+          "Key": "name",
+          "Value": "api-config"
+        },
+        {
+          "Space": "",
+          "Key": "raml",
+          "Value": "api.raml"
+        },
+        {
+          "Space": "",
+          "Key": "consoleEnabled",
+          "Value": "false"
+        },
+        {
+          "Space": "doc",
+          "Key": "name",
+          "Value": "Router"
+        }
+      ]
+    },
+    {
+      "name": "Salesforce__Basic_Authentication",
+      "attributes": [
+        {
+          "Space": "",
+          "Key": "name",
+          "Value": "Salesforce__Basic_Authentication"
+        },
+        {
+          "Space": "",
+          "Key": "username",
+          "Value": "${sfdc.username}"
+        },
+        {
+          "Space": "",
+          "Key": "password",
+          "Value": "${sfdc.password}"
+        },
+        {
+          "Space": "",
+          "Key": "securityToken",
+          "Value": "${sfdc.token}"
+        },
+        {
+          "Space": "doc",
+          "Key": "name",
+          "Value": "Salesforce: Basic Authentication"
+        }
+      ]
+    },
+    {
+      "name": "MySQL_Configuration",
+      "attributes": [
+        {
+          "Space": "",
+          "Key": "name",
+          "Value": "MySQL_Configuration"
+        },
+        {
+          "Space": "",
+          "Key": "host",
+          "Value": "${mysql.host}"
+        },
+        {
+          "Space": "",
+          "Key": "port",
+          "Value": "${mysql.port}"
+        },
+        {
+          "Space": "",
+          "Key": "user",
+          "Value": "${mysql.user}"
+        },
+        {
+          "Space": "",
+          "Key": "password",
+          "Value": "${mysql.password}"
+        },
+        {
+          "Space": "",
+          "Key": "database",
+          "Value": "${mysql.db}"
+        },
+        {
+          "Space": "doc",
+          "Key": "name",
+          "Value": "MySQL Configuration"
+        }
+      ]
+    }
+  ],
+  "componentList": [
+    "listener",
+    "router",
+    "exception-strategy",
+    "console",
+    "idempotent-message-filter",
+    "flow-ref",
+    "transform-message",
+    "update-single",
+    "cache",
+    "set-variable",
+    "create-single",
+    "inbound-endpoint",
+    "file-to-string-transformer",
+    "set-payload",
+    "foreach",
+    "insert",
+    "poll",
+    "fixed-frequency-scheduler",
+    "watermark",
+    "logger",
+    "execute",
+    "outbound-endpoint",
+    "input",
+    "process-records",
+    "step",
+    "select",
+    "choice",
+    "when",
+    "otherwise",
+    "update",
+    "on-complete",
+    "query-single",
+    "upsert",
+    "scatter-gather",
+    "processor-chain"
+  ],
+  "flowComplexityCount": {
+    "simple": 6,
+    "medium": 3,
+    "complex": 2
+  },
+  "flowManifest": [
+    {
+      "name": "api-main",
+      "type": "flow",
+      "trigger": "listener",
+      "transforms": 0,
+      "flowRefs": [],
+      "standaloneSize": 3,
+      "mergedSize": 3,
+      "complexity": "simple",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "Trigger: listener"
+        },
+        {
+          "indentLevel": 0,
+          "component": "router"
+        },
+        {
+          "indentLevel": 0,
+          "component": "exception-strategy"
+        }
+      ]
+    },
+    {
+      "name": "api-console",
+      "type": "flow",
+      "trigger": "listener",
+      "transforms": 0,
+      "flowRefs": [],
+      "standaloneSize": 2,
+      "mergedSize": 2,
+      "complexity": "simple",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "Trigger: listener"
+        },
+        {
+          "indentLevel": 0,
+          "component": "console"
+        }
+      ]
+    },
+    {
+      "name": "put:/customer/{id}:application/json:api-config",
+      "type": "flow",
+      "trigger": "",
+      "transforms": 1,
+      "flowRefs": [
+        "updateSalesforceContact"
+      ],
+      "standaloneSize": 3,
+      "mergedSize": 5,
+      "complexity": "medium",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "idempotent-message-filter"
+        },
+        {
+          "indentLevel": 0,
+          "component": "flow-ref -> [updateSalesforceContact]"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        }
+      ]
+    },
+    {
+      "name": "delete:/customer/{id}:api-config",
+      "type": "flow",
+      "trigger": "",
+      "transforms": 2,
+      "flowRefs": [],
+      "standaloneSize": 3,
+      "mergedSize": 3,
+      "complexity": "",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 0,
+          "component": "update-single"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        }
+      ]
+    },
+    {
+      "name": "get:/customer/{id}:api-config",
+      "type": "flow",
+      "trigger": "",
+      "transforms": 0,
+      "flowRefs": [
+        "getContactsbyId"
+      ],
+      "standaloneSize": 2,
+      "mergedSize": 4,
+      "complexity": "simple",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "cache"
+        },
+        {
+          "indentLevel": 1,
+          "component": "flow-ref -> [getContactsbyId]"
+        }
+      ]
+    },
+    {
+      "name": "get:/customer:api-config",
+      "type": "flow",
+      "trigger": "",
+      "transforms": 0,
+      "flowRefs": [
+        "getSalesforceContacts"
+      ],
+      "standaloneSize": 2,
+      "mergedSize": 6,
+      "complexity": "medium",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "cache"
+        },
+        {
+          "indentLevel": 1,
+          "component": "flow-ref -> [getSalesforceContacts]"
+        }
+      ]
+    },
+    {
+      "name": "post:/customer:application/json:api-config",
+      "type": "flow",
+      "trigger": "",
+      "transforms": 2,
+      "flowRefs": [],
+      "standaloneSize": 4,
+      "mergedSize": 4,
+      "complexity": "",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "set-variable"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 0,
+          "component": "create-single"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        }
+      ]
+    },
+    {
+      "name": "batch-file-to-dbFlow",
+      "type": "flow",
+      "trigger": "",
+      "transforms": 2,
+      "flowRefs": [],
+      "standaloneSize": 6,
+      "mergedSize": 6,
+      "complexity": "medium",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "inbound-endpoint"
+        },
+        {
+          "indentLevel": 0,
+          "component": "file-to-string-transformer"
+        },
+        {
+          "indentLevel": 0,
+          "component": "set-payload"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 0,
+          "component": "foreach"
+        },
+        {
+          "indentLevel": 1,
+          "component": "insert"
+        }
+      ]
+    },
+    {
+      "name": "batch-sync-db-sfdcFlow",
+      "type": "flow",
+      "trigger": "poll",
+      "transforms": 0,
+      "flowRefs": [
+        "batch-sync-db-sfdcBatch"
+      ],
+      "standaloneSize": 6,
+      "mergedSize": 21,
+      "complexity": "complex",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "Trigger: poll"
+        },
+        {
+          "indentLevel": 1,
+          "component": "fixed-frequency-scheduler"
+        },
+        {
+          "indentLevel": 1,
+          "component": "watermark"
+        },
+        {
+          "indentLevel": 1,
+          "component": "logger"
+        },
+        {
+          "indentLevel": 0,
+          "component": "execute -> [batch-sync-db-sfdcBatch]"
+        },
+        {
+          "indentLevel": 0,
+          "component": "outbound-endpoint"
+        }
+      ]
+    },
+    {
+      "name": "batch-sync-db-sfdcBatch",
+      "type": "job",
+      "trigger": "",
+      "transforms": 4,
+      "flowRefs": [],
+      "standaloneSize": 15,
+      "mergedSize": 15,
+      "complexity": "complex",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "input"
+        },
+        {
+          "indentLevel": 0,
+          "component": "process-records"
+        },
+        {
+          "indentLevel": 1,
+          "component": "step"
+        },
+        {
+          "indentLevel": 2,
+          "component": "foreach"
+        },
+        {
+          "indentLevel": 3,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 3,
+          "component": "select"
+        },
+        {
+          "indentLevel": 3,
+          "component": "choice"
+        },
+        {
+          "indentLevel": 4,
+          "component": "when #[payload.size() > 0]"
+        },
+        {
+          "indentLevel": 5,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 5,
+          "component": "insert"
+        },
+        {
+          "indentLevel": 4,
+          "component": "otherwise"
+        },
+        {
+          "indentLevel": 5,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 5,
+          "component": "update"
+        },
+        {
+          "indentLevel": 0,
+          "component": "on-complete"
+        },
+        {
+          "indentLevel": 1,
+          "component": "transform-message"
+        }
+      ]
+    },
+    {
+      "name": "getContactsbyId",
+      "type": "subFlow",
+      "trigger": "",
+      "transforms": 1,
+      "flowRefs": [],
+      "standaloneSize": 2,
+      "mergedSize": 2,
+      "complexity": "simple",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "query-single"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        }
+      ]
+    },
+    {
+      "name": "updateSalesforceContact",
+      "type": "subFlow",
+      "trigger": "",
+      "transforms": 1,
+      "flowRefs": [],
+      "standaloneSize": 2,
+      "mergedSize": 2,
+      "complexity": "simple",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        },
+        {
+          "indentLevel": 0,
+          "component": "upsert"
+        }
+      ]
+    },
+    {
+      "name": "getSalesforceContacts",
+      "type": "subFlow",
+      "trigger": "",
+      "transforms": 1,
+      "flowRefs": [],
+      "standaloneSize": 4,
+      "mergedSize": 4,
+      "complexity": "simple",
+      "flowComponents": [
+        {
+          "indentLevel": 0,
+          "component": "scatter-gather"
+        },
+        {
+          "indentLevel": 1,
+          "component": "processor-chain"
+        },
+        {
+          "indentLevel": 1,
+          "component": "processor-chain"
+        },
+        {
+          "indentLevel": 0,
+          "component": "transform-message"
+        }
+      ]
+    }
+  ],
+  "triggers": {
+    "count": 3,
+    "list": [
+      "listener",
+      "listener",
+      "poll"
+    ]
+  }
+}
+
+
