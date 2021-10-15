@@ -1,0 +1,107 @@
+# Mule App Analyis Summary
+
+## Mule app name: **{{ .MuleProjectName }}**
+
+## Mule app version: **{{ .MuleVersion }}**
+
+### List of Mule XMLs analysed:
+{{ range .MuleXMLs }}- {{ . }}
+{{ end }}
+- - -
+<div style="page-break-after: always"></div>
+
+## Mule Flows and SubFlows
+Notes:
+- The size of the flows sums up all referenced flows found in the flow, thus overlap of steps are factored in.
+- The full iteration of the reference flows can be found in the detailed report.
+
+### Flows in {{ .MuleProjectName }}
+{{ with .FlowManifest }}
+| No | Flow Type | Flow Name | Trigger | Flow Steps |
+|:--:|:---------:|:----------|:-------:|:----------:|
+{{ range $idx,$element := . }}{{ sum $idx 1 }}|{{ .Type }}|{{ .Name }}|{{ .Trigger }}|{{ .StandaloneSize }}|
+{{ end }}{{ end }}
+
+### Flow Complexity
+{{ with .FlowManifest }}
+| No | Flow Type | Flow Name | Transforms | Flow Refs | Full Steps Count | Complexity |
+|:--:|:---------:|:----------|:----------:|:---------:|:----------------:|:----------:|
+{{ range $idx,$element := . }}{{ sum $idx 1 }}|{{ .Type }}|{{ .Name }}|{{ .Transforms }}|{{ len .FlowRefs }}|{{ .MergedSize }}|{{ .Complexity }}|
+{{ end }}{{ end }}
+
+| Complexity | Count |
+|:-----------|:-----:|
+|Simple|{{ .FlowComplexityCount.Simple }}|
+|Medium|{{ .FlowComplexityCount.Medium }}|
+|Complex|{{ .FlowComplexityCount.Complex }}|
+|**Total**|**{{ sum .FlowComplexityCount.Simple .FlowComplexityCount.Medium .FlowComplexityCount.Complex }}**|
+
+- - -
+<div style="page-break-after: always"></div>
+
+{{ with .ComponentList }}
+### All Components Used
+
+{{ range . }}- {{ . }}
+{{ end }}{{ end }}
+{{ with .Triggers }}
+### Triggers Found
+
+Trigger Count: {{ .Count }}
+
+{{ range .List }}- {{ . }}
+{{ end }}{{ end }}
+
+- - -
+<div style="page-break-after: always"></div>
+
+## Mule App Configuration
+{{ range .Configs }}
+- {{ .Name }}
+{{ range $key, $value := .Attributes}}    - {{ $key }} : {{ $value }}
+{{ end }}{{ end }}
+
+- - -
+<div style="page-break-after: always"></div>
+
+## Flow Details
+
+{{ with .FlowManifest }}{{ range .}}
+```
+{{ .Type }}: {{ .Name }} [Size: {{ .StandaloneSize }}]
+{{ range .FlowComponents }}{{ indentLine .IndentLevel }} {{ .Component }}
+{{ end }}
+```
+- - -
+{{ end }}{{ end }}
+
+
+- - -
+<div style="page-break-after: always"></div>
+
+### Flow Steps Tabulation Details
+
+{{ with .FlowManifest }}{{ range .}}
+Total steps in **{{ .Name }}** : **{{ .MergedSize }}**
+```
+{{ .Type }}: {{ .Name }} [{{ .StandaloneSize }}]
+{{ range .FlowRefs }}{{ indentLine 1 }} FlowRef -> {{ . }} [{{ getFlowSize . }}]
+{{ end }}
+```
+- - -
+{{ end }}{{ end }}
+
+- - -
+<div style="page-break-after: always"></div>
+
+## High-level Migration Considerations and Recommendations
+
+{{ with .Recommendations }}{{ range $idx, $element := .}}
+### {{ sum 1 $idx }}. Flow Component: **{{ .FlowComponent }}**
+|    |    |
+|:---|:---|
+| **Component Type** | {{ .Component }} |
+| **Note** | {{ .Note }} |
+| **Recommendation** | {{ .Recommendation }} |
+- - -  
+{{ end }}{{ end }}

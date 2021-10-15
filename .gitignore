@@ -1,5 +1,6 @@
 pkg
 bin
+.DS_Store
 .vscode
 src/mule-app-analyser/vendor
 src/mule-app-analyser/go.sum
