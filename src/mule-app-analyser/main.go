@@ -17,7 +17,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 )
 
-//declare constants
+// declare constants
 const analyserVersion = `1.0.0`
 const htmlCSSStyle = `@media print{*,:after,:before{background:0 0!important;color:#000!important;box-shadow:none!important;text-shadow:none!important}a,a:visited{text-decoration:underline}a[href]:after{content:" (" attr(href) ")"}abbr[title]:after{content:" (" attr(title) ")"}a[href^="#"]:after,a[href^="javascript:"]:after{content:""}blockquote,pre{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}img,tr{page-break-inside:avoid}img{max-width:100%!important}h2,h3,p{orphans:3;widows:3}h2,h3{page-break-after:avoid}}code,pre{font-family:Menlo,Monaco,"Courier New",monospace}pre{padding:.5rem;line-height:1.25;overflow-x:scroll}a,a:visited{color:#3498db}a:active,a:focus,a:hover{color:#2980b9}.modest-no-decoration{text-decoration:none}html{font-size:12px}@media screen and (min-width:32rem) and (max-width:48rem){html{font-size:15px}}@media screen and (min-width:48rem){html{font-size:16px}}body{line-height:1.85}.modest-p,p{font-size:1rem;margin-bottom:1.3rem}.modest-h1,.modest-h2,.modest-h3,.modest-h4,h1,h2,h3,h4{margin:1.414rem 0 .5rem;font-weight:inherit;line-height:1.42}.modest-h1,h1{margin-top:0;font-size:3.998rem;font-weight:500}.modest-h2,h2{font-size:2.827rem}.modest-h3,h3{font-size:1.999rem}.modest-h4,h4{font-size:1.414rem}.modest-h5,h5{font-size:1.121rem}.modest-h6,h6{font-size:.88rem}.modest-small,small{font-size:.707em}canvas,iframe,img,select,svg,textarea,video{max-width:100%}html{font-size:18px;max-width:100%}body{color:#444;font-family:Poppins,sans-serif;font-weight:300;margin:0 auto;max-width:60rem;line-height:1.45;padding:.25rem}h1,h2,h3,h4,h5,h6{font-family:Poppins,Helvetica,sans-serif}h1,h2,h3{border-bottom:2px solid #fafafa;margin-bottom:1.15rem;padding-bottom:.5rem;text-align:left}blockquote{border-left:8px solid #fafafa;padding:1rem}code,pre{background-color:#fafafa;font-size:small}table{border-collapse:collapse;margin:25px 0;min-width:400px;box-shadow:0 0 20px rgba(0,0,0,.15)}thead tr{background-color:#3ea2a8;color:#fff}td,th{padding:12px 15px}tbody tr{border-bottom:1px solid #ddd}tbody tr:nth-of-type(even){background-color:#f3f3f3}tbody tr:last-of-type{border-bottom:2px solid #009879}hr{border:.5px solid #3ea2a8;margin:auto}`
 const htmlHeader = `<!DOCTYPE html><html><head><style>` + htmlCSSStyle + `</style></head><body>`
@@ -73,7 +73,7 @@ var drilldownComponentList = []string{
 	"on-complete",
 }
 
-//data structures
+// data structures
 type config struct {
 	Name       string            `json:"name"`
 	Attributes map[string]string `json:"attributes"`
@@ -130,7 +130,7 @@ type recommendations struct {
 	Recommendations []recommendation `json:"recommendations"`
 }
 
-//variable inits
+// variable inits
 var (
 	muleProjectName    string
 	muleAppPath        string
@@ -264,18 +264,34 @@ func getMuleAppDetails(path string) {
 func analyseMuleXMLs() {
 
 	//get list of Mule XMLs
-	files, err := os.ReadDir(muleAppPath)
+	// files, err := os.ReadDir(muleAppPath)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// for _, file := range files {
+	// 	if strings.Contains(file.Name(), ".xml") {
+	// 		muleXMLs = append(muleXMLs, file.Name())
+	// 	}
+	// }
+
+	err := filepath.Walk(muleAppPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".xml") {
+			muleXMLs = append(muleXMLs, path)
+		}
+
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}
-	for _, file := range files {
-		if strings.Contains(file.Name(), ".xml") {
-			muleXMLs = append(muleXMLs, file.Name())
-		}
-	}
 
 	for _, muleXML := range muleXMLs {
-		xmlDoc, err := loadXML(muleAppPath + muleXML)
+		// xmlDoc, err := loadXML(muleAppPath + muleXML)
+		xmlDoc, err := loadXML(muleXML)
 		if err != nil {
 			panic(err)
 		}
