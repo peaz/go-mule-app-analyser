@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -247,7 +247,7 @@ func getMuleAppDetails(path string) {
 			if err == nil {
 				//Get exact target version from mule-artifact.json
 				defer muleArtifactJSON.Close()
-				byteValue, _ := ioutil.ReadAll(muleArtifactJSON)
+				byteValue, _ := io.ReadAll(muleArtifactJSON)
 				var j map[string]interface{}
 				json.Unmarshal([]byte(byteValue), &j)
 				muleVersion = j["minMuleVersion"].(string)
