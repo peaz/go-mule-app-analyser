@@ -69,7 +69,7 @@ Trigger Count: {{ .Count }}
 {{ with .FlowManifest }}{{ range .}}
 ```
 {{ .Type }}: {{ .Name }} [Size: {{ .StandaloneSize }}]
-{{ range .FlowComponents }}{{ indentLine .IndentLevel }} {{ .Component }}
+{{ range .FlowComponents }}{{ indentLine .IndentLevel }} {{ .Component }}{{ dwTargets .DataWeave }}{{ if .Attributes }} [{{ formatAttrs .Attributes }}]{{ end }}
 {{ end }}
 ```
 - - -
@@ -94,6 +94,31 @@ Total steps in **{{ .Name }}** : **{{ .MergedSize }}**
 - - -
 <div style="page-break-after: always"></div>
 
+## DataWeave Transformations
+
+{{ if .DataWeaveTransforms }}
+{{ range .DataWeaveTransforms }}
+### Flow: {{ .FlowName }}
+
+**Component:** `{{ .Component }}`
+
+{{ range .Scripts }}
+**Target:** `{{ .Target }}`
+
+```
+{{ .Script }}
+```
+
+{{ end }}
+- - -
+{{ end }}
+{{ else }}
+*No DataWeave transformations detected.*
+{{ end }}
+
+- - -
+<div style="page-break-after: always"></div>
+
 ## High-level Migration Considerations and Recommendations
 
 {{ with .Recommendations }}{{ range $idx, $element := .}}
@@ -103,5 +128,6 @@ Total steps in **{{ .Name }}** : **{{ .MergedSize }}**
 | **Component Type** | {{ .Component }} |
 | **Note** | {{ .Note }} |
 | **Recommendation** | {{ .Recommendation }} |
-- - -  
+{{ if .DetectedContext }}| **Detected Config** | {{ formatAttrs .DetectedContext }} |{{ end }}
+- - -
 {{ end }}{{ end }}

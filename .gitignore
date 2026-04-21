@@ -7,3 +7,4 @@ src/mule-app-analyser/go.sum
 src/mule-app-analyser/reports
 go-mule-app-analyser.code-workspace
 releases
+example-mule-apps

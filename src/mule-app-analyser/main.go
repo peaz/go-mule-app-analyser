@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -18,7 +19,7 @@ import (
 )
 
 // declare constants
-const analyserVersion = `1.0.1`
+const analyserVersion = `1.1.0`
 const htmlCSSStyle = `@media print{*,:after,:before{background:0 0!important;color:#000!important;box-shadow:none!important;text-shadow:none!important}a,a:visited{text-decoration:underline}a[href]:after{content:" (" attr(href) ")"}abbr[title]:after{content:" (" attr(title) ")"}a[href^="#"]:after,a[href^="javascript:"]:after{content:""}blockquote,pre{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}img,tr{page-break-inside:avoid}img{max-width:100%!important}h2,h3,p{orphans:3;widows:3}h2,h3{page-break-after:avoid}}code,pre{font-family:Menlo,Monaco,"Courier New",monospace}pre{padding:.5rem;line-height:1.25;overflow-x:scroll}a,a:visited{color:#3498db}a:active,a:focus,a:hover{color:#2980b9}.modest-no-decoration{text-decoration:none}html{font-size:12px}@media screen and (min-width:32rem) and (max-width:48rem){html{font-size:15px}}@media screen and (min-width:48rem){html{font-size:16px}}body{line-height:1.85}.modest-p,p{font-size:1rem;margin-bottom:1.3rem}.modest-h1,.modest-h2,.modest-h3,.modest-h4,h1,h2,h3,h4{margin:1.414rem 0 .5rem;font-weight:inherit;line-height:1.42}.modest-h1,h1{margin-top:0;font-size:3.998rem;font-weight:500}.modest-h2,h2{font-size:2.827rem}.modest-h3,h3{font-size:1.999rem}.modest-h4,h4{font-size:1.414rem}.modest-h5,h5{font-size:1.121rem}.modest-h6,h6{font-size:.88rem}.modest-small,small{font-size:.707em}canvas,iframe,img,select,svg,textarea,video{max-width:100%}html{font-size:18px;max-width:100%}body{color:#444;font-family:Poppins,sans-serif;font-weight:300;margin:0 auto;max-width:60rem;line-height:1.45;padding:.25rem}h1,h2,h3,h4,h5,h6{font-family:Poppins,Helvetica,sans-serif}h1,h2,h3{border-bottom:2px solid #fafafa;margin-bottom:1.15rem;padding-bottom:.5rem;text-align:left}blockquote{border-left:8px solid #fafafa;padding:1rem}code,pre{background-color:#fafafa;font-size:small}table{border-collapse:collapse;margin:25px 0;min-width:400px;box-shadow:0 0 20px rgba(0,0,0,.15)}thead tr{background-color:#3ea2a8;color:#fff}td,th{padding:12px 15px}tbody tr{border-bottom:1px solid #ddd}tbody tr:nth-of-type(even){background-color:#f3f3f3}tbody tr:last-of-type{border-bottom:2px solid #009879}hr{border:.5px solid #3ea2a8;margin:auto}`
 const htmlHeader = `<!DOCTYPE html><html><head><style>` + htmlCSSStyle + `</style></head><body>`
 const htmlFooter = `</body></html>`
@@ -56,6 +57,7 @@ var drilldownComponentList = []string{
 	"async",
 	"cache",
 	"foreach",
+	"parallel-foreach",
 	"enricher",
 	"poll",
 	"request-reply",
@@ -64,14 +66,18 @@ var drilldownComponentList = []string{
 	"try",
 	"error-handler",
 	"on-error",
+	"on-error-propagate",
+	"on-error-continue",
 	"first-successful",
 	"route",
 	"round-robin",
-	"until-successful",
 	"process-records",
 	"step",
 	"on-complete",
+	"processor-chain",
 }
+
+var skipAttrKeys = []string{"doc:name", "doc:id", "doc:description"}
 
 // data structures
 type config struct {
@@ -91,9 +97,22 @@ type flow struct {
 	FlowComponents []flowComponent `json:"flowComponents"`
 }
 
+type dataWeaveScript struct {
+	Target string `json:"target"`
+	Script string `json:"script"`
+}
+
+type dataWeaveTransform struct {
+	FlowName  string            `json:"flowName"`
+	Component string            `json:"component"`
+	Scripts   []dataWeaveScript `json:"scripts"`
+}
+
 type flowComponent struct {
-	IndentLevel int    `json:"indentLevel"`
-	Component   string `json:"component"`
+	IndentLevel int               `json:"indentLevel"`
+	Component   string            `json:"component"`
+	Attributes  map[string]string `json:"attributes,omitempty"`
+	DataWeave   []dataWeaveScript `json:"dataWeave,omitempty"`
 }
 
 type triggers struct {
@@ -108,23 +127,25 @@ type flowComplexityCount struct {
 }
 
 type rawData struct {
-	MuleProjectName     string              `json:"muleProjectName"`
-	MuleAppPath         string              `json:"muleAppPath"`
-	MuleXMLs            []string            `json:"muleXMLs"`
-	MuleVersion         string              `json:"muleVersion"`
-	Configs             []config            `json:"configs"`
-	ComponentList       []string            `json:"componentList"`
-	FlowComplexityCount flowComplexityCount `json:"flowComplexityCount"`
-	FlowManifest        []flow              `json:"flowManifest"`
-	Triggers            triggers            `json:"triggers"`
-	Recommendations     []recommendation    `json:"recommendations"`
+	MuleProjectName     string               `json:"muleProjectName"`
+	MuleAppPath         string               `json:"muleAppPath"`
+	MuleXMLs            []string             `json:"muleXMLs"`
+	MuleVersion         string               `json:"muleVersion"`
+	Configs             []config             `json:"configs"`
+	ComponentList       []string             `json:"componentList"`
+	FlowComplexityCount flowComplexityCount  `json:"flowComplexityCount"`
+	FlowManifest        []flow               `json:"flowManifest"`
+	Triggers            triggers             `json:"triggers"`
+	DataWeaveTransforms []dataWeaveTransform `json:"dataWeaveTransforms"`
+	Recommendations     []recommendation     `json:"recommendations"`
 }
 
 type recommendation struct {
-	FlowComponent  string `json:"flowComponent"`
-	Component      string `json:"component"`
-	Note           string `json:"note"`
-	Recommendation string `json:"recommendation"`
+	FlowComponent   string            `json:"flowComponent"`
+	Component       string            `json:"component"`
+	Note            string            `json:"note"`
+	Recommendation  string            `json:"recommendation"`
+	DetectedContext map[string]string `json:"detectedContext,omitempty"`
 }
 type recommendations struct {
 	Recommendations []recommendation `json:"recommendations"`
@@ -132,20 +153,21 @@ type recommendations struct {
 
 // variable inits
 var (
-	muleProjectName    string
-	muleAppPath        string
-	muleVersion        string
-	muleXMLs           = make([]string, 0)
-	configs            = make([]config, 0)
-	componentList      = make([]string, 0)
-	triggerList        = make([]string, 0)
-	complexityCount    = flowComplexityCount{Simple: 0, Medium: 0, Complex: 0}
-	flowManifest       = make([]flow, 0)
-	dictionary         recommendations
-	recommendationList = make([]recommendation, 0)
-	rawAnalysisData    rawData
-	mdReportBuffer     bytes.Buffer
-	flagPath           *string
+	muleProjectName     string
+	muleAppPath         string
+	muleVersion         string
+	muleXMLs            = make([]string, 0)
+	configs             = make([]config, 0)
+	componentList       = make([]string, 0)
+	componentDetailsMap = make(map[string]map[string]string)
+	triggerList         = make([]string, 0)
+	complexityCount     = flowComplexityCount{Simple: 0, Medium: 0, Complex: 0}
+	flowManifest        = make([]flow, 0)
+	dictionary          recommendations
+	recommendationList  = make([]recommendation, 0)
+	rawAnalysisData     rawData
+	mdReportBuffer      bytes.Buffer
+	flagPath            *string
 )
 
 /*
@@ -325,6 +347,146 @@ func getAttributes(component etree.Element) map[string]string {
 	return attr
 }
 
+// extractAttributes returns functional attributes for a component, stripping editor
+// metadata (doc:name, doc:id). For scheduler and db components it also digs into
+// child elements where the interesting config is nested.
+func extractAttributes(component etree.Element) map[string]string {
+	attrs := make(map[string]string)
+	tag := strings.ToLower(component.FullTag())
+
+	for _, attr := range component.Attr {
+		fullKey := attr.FullKey()
+		if !inList(fullKey, skipAttrKeys) && strings.TrimSpace(attr.Value) != "" {
+			attrs[fullKey] = attr.Value
+		}
+	}
+
+	// Scheduler: cron / fixed-frequency live two levels deep inside <scheduling-strategy>
+	if strings.Contains(tag, "scheduler") {
+		for _, child := range component.ChildElements() {
+			for _, gc := range child.ChildElements() {
+				gcTag := strings.ToLower(gc.FullTag())
+				if strings.Contains(gcTag, "cron") {
+					if v := gc.SelectAttrValue("expression", ""); v != "" {
+						attrs["cron-expression"] = v
+					}
+					if v := gc.SelectAttrValue("timeZone", ""); v != "" {
+						attrs["cron-timezone"] = v
+					}
+				} else if strings.Contains(gcTag, "fixed-frequency") {
+					if v := gc.SelectAttrValue("frequency", ""); v != "" {
+						attrs["frequency"] = v
+					}
+					if v := gc.SelectAttrValue("timeUnit", ""); v != "" {
+						attrs["timeUnit"] = v
+					}
+					if v := gc.SelectAttrValue("startDelay", ""); v != "" {
+						attrs["startDelay"] = v
+					}
+				}
+			}
+		}
+	}
+
+	// DB components: extract SQL text from <db:sql> child element
+	if strings.HasPrefix(tag, "db:") {
+		for _, child := range component.ChildElements() {
+			cTag := strings.ToLower(child.FullTag())
+			if strings.HasSuffix(cTag, ":sql") || cTag == "sql" {
+				if sql := strings.TrimSpace(child.Text()); sql != "" {
+					if len(sql) > 200 {
+						sql = sql[:200] + "..."
+					}
+					attrs["sql"] = sql
+				}
+			}
+		}
+	}
+
+	if len(attrs) == 0 {
+		return nil
+	}
+	return attrs
+}
+
+// extractDataWeave walks the children of a transform component and returns
+// every DataWeave script it finds, tagged with the output target.
+func extractDataWeave(component etree.Element) []dataWeaveScript {
+	scripts := make([]dataWeaveScript, 0)
+
+	for _, child := range component.ChildElements() {
+		childTag := child.FullTag()
+
+		// Mule 4: ee:message / ee:variables wrappers
+		if childTag == "ee:message" || childTag == "ee:variables" {
+			for _, gc := range child.ChildElements() {
+				gcTag := gc.FullTag()
+				var target string
+				switch gcTag {
+				case "ee:set-payload":
+					target = "payload"
+				case "ee:set-variable":
+					varName := gc.SelectAttrValue("variableName", "")
+					if varName != "" {
+						target = "variable:" + varName
+					} else {
+						target = "variable"
+					}
+				default:
+					target = gcTag
+				}
+				if script := strings.TrimSpace(gc.Text()); script != "" {
+					scripts = append(scripts, dataWeaveScript{Target: target, Script: script})
+				}
+			}
+		}
+
+		// Mule 3: dw:set-payload, dw:set-variable, dw:input-payload
+		if strings.HasPrefix(childTag, "dw:") {
+			var target string
+			switch childTag {
+			case "dw:set-payload", "dw:input-payload":
+				target = "payload"
+			case "dw:set-variable":
+				varName := child.SelectAttrValue("variableName", "")
+				if varName != "" {
+					target = "variable:" + varName
+				} else {
+					target = "variable"
+				}
+			default:
+				target = childTag
+			}
+			if script := strings.TrimSpace(child.Text()); script != "" {
+				scripts = append(scripts, dataWeaveScript{Target: target, Script: script})
+			}
+		}
+	}
+
+	if len(scripts) == 0 {
+		return nil
+	}
+	return scripts
+}
+
+// collectDataWeaveTransforms scans the flow manifest and collects every
+// flowComponent that has extracted DataWeave scripts.
+func collectDataWeaveTransforms() []dataWeaveTransform {
+	transforms := make([]dataWeaveTransform, 0)
+	for _, f := range flowManifest {
+		for _, fc := range f.FlowComponents {
+			if len(fc.DataWeave) > 0 {
+				transforms = append(transforms, dataWeaveTransform{
+					FlowName:  f.Name,
+					Component: fc.Component,
+					Scripts:   fc.DataWeave,
+				})
+			}
+		}
+	}
+	return transforms
+}
+
 func calculateFlowComplexity() {
 	for i := 0; i < len(flowManifest); i++ {
 		stepsCount := flowManifest[i].MergedSize
@@ -367,10 +529,13 @@ func searchRecommendation(component string) (bool, recommendation) {
 
 func generateRecommendations() {
 	for _, component := range componentList {
-		found, recommendation := searchRecommendation(component)
+		found, rec := searchRecommendation(component)
 		if found {
-			recommendation.FlowComponent = component
-			recommendationList = append(recommendationList, recommendation)
+			rec.FlowComponent = component
+			if attrs, ok := componentDetailsMap[component]; ok && len(attrs) > 0 {
+				rec.DetectedContext = attrs
+			}
+			recommendationList = append(recommendationList, rec)
 		}
 	}
 }
@@ -386,13 +551,13 @@ func generateRawData() {
 	rawAnalysisData.FlowManifest = flowManifest
 	rawAnalysisData.Triggers.Count = len(triggerList)
 	rawAnalysisData.Triggers.List = triggerList
+	rawAnalysisData.DataWeaveTransforms = collectDataWeaveTransforms()
 	rawAnalysisData.Recommendations = recommendationList
 	os.WriteFile("./reports/rawAnalysisData-"+muleProjectName+".json", []byte(encodeJSONString(rawAnalysisData)), os.FileMode(0755))
 }
 
 func generateMDReport() {
 	funcMap := template.FuncMap{
-		// The name "inc" is what the function will be called in the template text.
 		"sum": func(i ...int) int {
 			result := 0
 			for _, v := range i {
@@ -415,6 +580,38 @@ func generateMDReport() {
 				}
 			}
 			return size
+		},
+		// formatAttrs renders a component attribute map as "key: value | key: value",
+		// sorted for stable output. Values longer than 80 chars are truncated.
+		"formatAttrs": func(attrs map[string]string) string {
+			if len(attrs) == 0 {
+				return ""
+			}
+			keys := make([]string, 0, len(attrs))
+			for k := range attrs {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			parts := make([]string, 0, len(keys))
+			for _, k := range keys {
+				v := attrs[k]
+				if len(v) > 80 {
+					v = v[:80] + "..."
+				}
+				parts = append(parts, fmt.Sprintf("%s: %s", k, v))
+			}
+			return strings.Join(parts, " | ")
+		},
+		// dwTargets returns a compact summary of DataWeave output targets.
+		"dwTargets": func(dws []dataWeaveScript) string {
+			if len(dws) == 0 {
+				return ""
+			}
+			targets := make([]string, 0, len(dws))
+			for _, dw := range dws {
+				targets = append(targets, dw.Target)
+			}
+			return " {dw→ " + strings.Join(targets, ", ") + "}"
 		},
 	}
 	t, err := template.New("markdownTmpl").Funcs(funcMap).ParseFiles(mdTemplateFile)
@@ -463,9 +660,13 @@ func inListContains(search string, list []string) bool {
 	return false
 }
 
-func addComponent(componentName string) {
-	if !inList(componentName, componentList) {
-		componentList = append(componentList, strings.ToLower(componentName))
+func addComponent(componentName string, attrs map[string]string) {
+	lower := strings.ToLower(componentName)
+	if !inList(lower, componentList) {
+		componentList = append(componentList, lower)
+		if len(attrs) > 0 {
+			componentDetailsMap[lower] = attrs
+		}
 	}
 }
 
@@ -503,14 +704,14 @@ func analyseFlowElements(flowElement etree.Element, indentLevel int) {
 func analyseComponent(flowObj *flow, component etree.Element, indentLevel int) {
 	componentTag := component.FullTag()
 
-	//add unique component to componentList
-	addComponent(componentTag)
+	attrs := extractAttributes(component)
+	addComponent(componentTag, attrs)
 
-	//handle specifc type of components
+	var fc flowComponent
 	if inListContains(componentTag, triggerKeywordList) {
 		flowObj.Trigger = componentTag
 		triggerList = append(triggerList, componentTag)
-		flowObj.FlowComponents = append(flowObj.FlowComponents, flowComponent{IndentLevel: indentLevel, Component: fmt.Sprintf("Trigger: %s", componentTag)})
+		fc = flowComponent{IndentLevel: indentLevel, Component: fmt.Sprintf("Trigger: %s", componentTag), Attributes: attrs}
 	} else if componentTag == "flow-ref" || componentTag == "execute" {
 		flowRefName := ""
 		for _, attrib := range component.Attr {
@@ -519,23 +720,23 @@ func analyseComponent(flowObj *flow, component etree.Element, indentLevel int) {
 			}
 		}
 		flowObj.FlowRefs = append(flowObj.FlowRefs, flowRefName)
-		flowObj.FlowComponents = append(flowObj.FlowComponents, flowComponent{IndentLevel: indentLevel, Component: fmt.Sprintf("%s -> [%s]", componentTag, flowRefName)})
+		fc = flowComponent{IndentLevel: indentLevel, Component: fmt.Sprintf("%s -> [%s]", componentTag, flowRefName), Attributes: attrs}
 	} else if componentTag == "when" {
-		flowObj.FlowComponents = append(flowObj.FlowComponents, flowComponent{IndentLevel: indentLevel, Component: fmt.Sprintf("%s %s", componentTag, component.SelectAttrValue("expression", ""))})
+		fc = flowComponent{IndentLevel: indentLevel, Component: fmt.Sprintf("%s %s", componentTag, component.SelectAttrValue("expression", "")), Attributes: attrs}
 	} else if strings.Contains(componentTag, "dw") || strings.Contains(componentTag, "transform") {
 		flowObj.Transforms += 1
-		flowObj.FlowComponents = append(flowObj.FlowComponents, flowComponent{IndentLevel: indentLevel, Component: componentTag})
+		dw := extractDataWeave(component)
+		fc = flowComponent{IndentLevel: indentLevel, Component: componentTag, Attributes: attrs, DataWeave: dw}
 	} else {
-		flowObj.FlowComponents = append(flowObj.FlowComponents, flowComponent{IndentLevel: indentLevel, Component: componentTag})
+		fc = flowComponent{IndentLevel: indentLevel, Component: componentTag, Attributes: attrs}
 	}
 
-	//check if the we need to drill down the component
+	flowObj.FlowComponents = append(flowObj.FlowComponents, fc)
+
 	if inList(componentTag, drilldownComponentList) {
 		for _, subComponent := range component.ChildElements() {
 			analyseComponent(flowObj, *subComponent, indentLevel+1)
 		}
-	} else {
-		return
 	}
 }
 

@@ -28,7 +28,7 @@
         {
             "component": "dw:transform-message",
             "note":"This message transformation component uses [Dataweave](https://docs.mulesoft.com/mule-runtime/4.3/dataweave), a MuleSoft proprietery data expression language to act on data.",
-            "recommendation":"You will need to read the Dataweave script to determine how the data transformation and mapping are designed in the flow and how it is finally sent to the target application or APIs."
+            "recommendation":"You will need to read the Dataweave script to determine how the data transformation and mapping are designed in the flow and how it is finally sent to the target application or APIs. The extracted DataWeave scripts are available in the DataWeave Transformations section of this report."
         },
         {
             "component": "*-transformer",
@@ -39,6 +39,11 @@
             "component": "http:listener",
             "note":"The [HTTP listener connector](https://docs.mulesoft.com/http-connector/0.3.8/http-listener-connector) listens on any HTTP(S) request which then triggers the flow.",
             "recommendation":"Consider the use of the HTTP listener connector. If it exposes an HTTP-based API endpoint, use the [API Platform](https://docs.workato.com/api-management.html#api-platform) to expose an API endpoint which trigger the relevant callable recipe. If it is used to expose a webhook endpoint, use the [Webhooks connector](https://docs.workato.com/connectors/workato-webhooks.html) as the trigger in the recipe."
+        },
+        {
+            "component": "http:request",
+            "note":"The [HTTP Request connector](https://docs.mulesoft.com/http-connector/0.3.8/http-request-action) makes outbound HTTP/HTTPS calls to external REST APIs or services.",
+            "recommendation":"Use the [HTTP connector](https://docs.workato.com/connectors/http.html) in Workato to make equivalent outbound REST or HTTP API calls. Configure the connection with the base URL and authentication method (OAuth2, API key, Basic Auth), then define the request/response schema. The detected method and path attributes indicate the specific operation being called."
         },
         {
             "component":"cloudhub",
@@ -69,6 +74,151 @@
             "component":"ws",
             "note":"The [Web Service Consumer Connector](https://docs.mulesoft.com/web-service-consumer-connector/1.6/) is used to consume external SOAP services in a Mule Application",
             "recommendation":"Use the HTTP connector and [SOAP tools](https://docs.workato.com/features/handling-soap.html#handling-soap) to consume SOAP services."
+        },
+        {
+            "component": "db:",
+            "note":"The [Database connector](https://docs.mulesoft.com/db-connector/1.14/) provides integration with relational databases such as MySQL, PostgreSQL, Oracle, and Microsoft SQL Server. The detected SQL and config-ref attributes indicate the database type and the specific operation being performed.",
+            "recommendation":"Use the native Workato database connectors (MySQL, PostgreSQL, Oracle, SQL Server) which provide equivalent Select, Insert, Update, Delete, and Stored procedure actions. For bulk operations, combine with [batch jobs](https://docs.workato.com/features/batch-processing.html) or the [Collections](https://docs.workato.com/features/collection.html) feature."
+        },
+        {
+            "component": "salesforce:",
+            "note":"The [Salesforce connector](https://docs.mulesoft.com/salesforce-connector/10.17/) provides full CRUD and Bulk API access to Salesforce objects. The detected objectType and externalIdFieldName attributes identify the Salesforce object and upsert key being used.",
+            "recommendation":"Use the native [Salesforce connector](https://docs.workato.com/connectors/salesforce.html) in Workato which supports equivalent query, create, update, upsert, delete, and bulk operations. Real-time Salesforce triggers (new/updated records) are also available."
+        },
+        {
+            "component": "sfdc:",
+            "note":"The [Salesforce connector](https://docs.mulesoft.com/salesforce-connector/10.17/) provides full CRUD and Bulk API access to Salesforce objects. The detected objectType and externalIdFieldName attributes identify the Salesforce object and upsert key being used.",
+            "recommendation":"Use the native [Salesforce connector](https://docs.workato.com/connectors/salesforce.html) in Workato which supports equivalent query, create, update, upsert, delete, and bulk operations. Real-time Salesforce triggers (new/updated records) are also available."
+        },
+        {
+            "component": "smtp:",
+            "note":"The [SMTP outbound endpoint](https://docs.mulesoft.com/email-connector/1.5/) (Mule 3) sends emails from a Mule flow.",
+            "recommendation":"Use the [Email by Workato](https://docs.workato.com/connectors/workato-email.html) connector or dedicated connectors such as Gmail or Microsoft 365 Outlook to send emails. HTML body content is supported natively."
+        },
+        {
+            "component": "email:",
+            "note":"The [Email connector](https://docs.mulesoft.com/email-connector/1.5/) (Mule 4) handles sending and receiving of emails via SMTP, IMAP, or POP3.",
+            "recommendation":"Use the [Email by Workato](https://docs.workato.com/connectors/workato-email.html) connector or dedicated connectors such as Gmail or Microsoft 365 Outlook. For triggering on incoming emails, use the corresponding email connector trigger (e.g., New email in Gmail)."
+        },
+        {
+            "component": "ftp:",
+            "note":"The [FTP connector](https://docs.mulesoft.com/ftp-connector/1.6/) provides connectivity to FTP servers for reading, writing, listing, moving, and deleting files.",
+            "recommendation":"Use the [FTP connector](https://docs.workato.com/connectors/ftp.html) in Workato which provides equivalent file operations. For scheduled file polling, combine with the Workato [Scheduler](https://docs.workato.com/connectors/scheduler.html) trigger."
+        },
+        {
+            "component": "sftp:",
+            "note":"The [SFTP connector](https://docs.mulesoft.com/sftp-connector/2.0/) provides secure file transfer operations over SSH. The detected directoryPath and matcher attributes indicate the polling path and file filter pattern in use.",
+            "recommendation":"Use the [SFTP connector](https://docs.workato.com/connectors/sftp.html) in Workato which provides equivalent secure file operations including list, read, write, move, and delete. For polling-based patterns, combine with the Scheduler trigger."
+        },
+        {
+            "component": "file:",
+            "note":"The [File connector](https://docs.mulesoft.com/file-connector/1.3/) provides access to files on the local or mounted filesystem, commonly used to trigger flows when files arrive.",
+            "recommendation":"For cloud-based file handling, use connectors such as Amazon S3, Google Drive, Box, or SharePoint as the equivalent file store. Use [Files by Workato](https://docs.workato.com/features/files-and-attachments.html) to handle file content within recipes."
+        },
+        {
+            "component": "jms:",
+            "note":"The [JMS connector](https://docs.mulesoft.com/jms-connector/1.8/) provides connectivity to Java Message Service brokers such as ActiveMQ or IBM MQ. The detected destination attribute identifies the queue or topic being consumed or published to.",
+            "recommendation":"Use [PubSub by Workato](https://docs.workato.com/connectors/pubsub.html) for internal event-driven messaging between recipes. For connectivity to existing JMS brokers, use the [Amazon SQS connector](https://docs.workato.com/connectors/sqs.html), [RabbitMQ connector](https://docs.workato.com/connectors/rabbitmq.html), or the [HTTP connector](https://docs.workato.com/connectors/http.html) with the broker's REST management API."
+        },
+        {
+            "component": "kafka:",
+            "note":"The [Kafka connector](https://docs.mulesoft.com/kafka-connector/4.4/) provides integration with Apache Kafka for producing and consuming messages.",
+            "recommendation":"Use the [Apache Kafka connector](https://docs.workato.com/connectors/kafka.html) in Workato which supports both publishing messages and triggering recipes from new Kafka messages (consumer trigger)."
+        },
+        {
+            "component": "sqs:",
+            "note":"The [Amazon SQS connector](https://docs.mulesoft.com/amazon-sqs-connector/5.10/) provides integration with Amazon Simple Queue Service for message queuing.",
+            "recommendation":"Use the native [Amazon SQS connector](https://docs.workato.com/connectors/sqs.html) in Workato which provides equivalent send message, receive message, and delete message operations."
+        },
+        {
+            "component": "s3:",
+            "note":"The [Amazon S3 connector](https://docs.mulesoft.com/amazon-s3-connector/5.9/) provides operations for reading, writing, and managing objects in Amazon S3 buckets.",
+            "recommendation":"Use the native [Amazon S3 connector](https://docs.workato.com/connectors/s3.html) in Workato which provides equivalent operations for uploading, downloading, listing, and deleting S3 objects."
+        },
+        {
+            "component": "amqp:",
+            "note":"The [AMQP connector](https://docs.mulesoft.com/amqp-connector/1.7/) provides integration with AMQP-compatible brokers such as RabbitMQ.",
+            "recommendation":"Use the [RabbitMQ connector](https://docs.workato.com/connectors/rabbitmq.html) in Workato for direct AMQP/RabbitMQ integration, or use [PubSub by Workato](https://docs.workato.com/connectors/pubsub.html) if migrating to a fully managed event bus."
+        },
+        {
+            "component": "sap:",
+            "note":"The [SAP connector](https://docs.mulesoft.com/sap-connector/5.0/) provides connectivity to SAP systems via RFC, BAPI, and IDoc.",
+            "recommendation":"Use the [SAP connector](https://docs.workato.com/connectors/sap.html) in Workato which supports RFC/BAPI function calls and IDoc send/receive. Evaluate whether the integration uses synchronous (BAPI/RFC) or asynchronous (IDoc) patterns to select the appropriate Workato SAP actions and triggers."
+        },
+        {
+            "component": "servicenow:",
+            "note":"The [ServiceNow connector](https://docs.mulesoft.com/servicenow-connector/6.11/) provides CRUD operations on ServiceNow records.",
+            "recommendation":"Use the native [ServiceNow connector](https://docs.workato.com/connectors/servicenow.html) in Workato which provides equivalent record creation, update, search, and retrieval operations, as well as triggers for new or updated records."
+        },
+        {
+            "component": "workday:",
+            "note":"The [Workday connector](https://docs.mulesoft.com/workday-connector/14.0/) provides integration with Workday HCM and Financial Management via the Workday Web Services API.",
+            "recommendation":"Use the native [Workday connector](https://docs.workato.com/connectors/workday.html) in Workato which provides access to Workday operations across HCM, Financials, and Recruiting modules."
+        },
+        {
+            "component": "scheduler",
+            "note":"The [Scheduler](https://docs.mulesoft.com/mule-runtime/4.3/scheduler-concept) triggers a flow on a fixed frequency or cron expression. The detected cron-expression or frequency attributes show the exact polling interval configured.",
+            "recommendation":"Use the [Scheduler trigger](https://docs.workato.com/connectors/scheduler.html) in Workato. For polling an external system (e.g., database, API), many native Workato connectors already provide a polling trigger (e.g., 'New/updated records since last run') which handles watermarking automatically, potentially removing the need for a separate scheduler flow."
+        },
+        {
+            "component": "foreach",
+            "note":"The [For Each scope](https://docs.mulesoft.com/mule-runtime/4.3/for-each-scope-concept) iterates over a collection and processes each element sequentially. The detected collection attribute shows the data source being iterated.",
+            "recommendation":"Use the [Repeat action](https://docs.workato.com/recipes/loops.html) in Workato to iterate over a list. For bulk processing, consider using [Collections](https://docs.workato.com/features/collection.html) which provide map/filter/reduce operations to process lists more efficiently without explicit loops."
+        },
+        {
+            "component": "parallel-foreach",
+            "note":"The [Parallel For Each scope](https://docs.mulesoft.com/mule-runtime/4.3/parallel-foreach-scope-concept) iterates over a collection and processes each element concurrently up to a configurable maxConcurrency limit. The detected collection and maxConcurrency attributes show the data source and parallelism level.",
+            "recommendation":"Use [Callable recipes](https://docs.workato.com/features/callable-recipes.html) invoked asynchronously to achieve parallel processing. The calling recipe fires multiple async callable recipe calls (one per item) without waiting, then optionally uses the [Wait for async calls action](https://docs.workato.com/features/callable-recipes/wait-for-async-action.html) to collect results."
+        },
+        {
+            "component": "try",
+            "note":"The [Try scope](https://docs.mulesoft.com/mule-runtime/4.3/try-scope-concept) wraps a set of components in an error handling block. The detected transactionalAction attribute indicates whether database transactions are being managed within the scope.",
+            "recommendation":"Use the [Error monitor](https://docs.workato.com/recipes/error-handling.html) step in Workato to wrap steps in an equivalent try-catch block. For transactional patterns (transactionalAction: ALWAYS_BEGIN), ensure that database operations within the block use the same connection and evaluate whether the target database connector supports transaction control."
+        },
+        {
+            "component": "until-successful",
+            "note":"The [Until Successful scope](https://docs.mulesoft.com/mule-runtime/4.3/until-successful-scope) retries the enclosed processors until they succeed or a maximum retry count is reached. The detected maxRetries and millisBetweenRetries attributes show the retry policy configured.",
+            "recommendation":"Use the [Repeat action](https://docs.workato.com/recipes/loops.html) with a counter variable and a conditional exit to implement custom retry behaviour. Alternatively, configure the connector action's built-in retry settings where available. For HTTP calls, the [HTTP connector](https://docs.workato.com/connectors/http.html) supports retry-on-failure configuration."
+        },
+        {
+            "component": "async",
+            "note":"The [Async scope](https://docs.mulesoft.com/mule-runtime/4.3/async-scope-reference) executes a group of processors asynchronously in a separate thread without blocking the main flow.",
+            "recommendation":"Use [Callable recipes](https://docs.workato.com/features/callable-recipes.html) invoked asynchronously. The calling recipe fires the callable recipe without waiting for a response, achieving the same non-blocking execution pattern."
+        },
+        {
+            "component": "raise-error",
+            "note":"The [Raise Error component](https://docs.mulesoft.com/mule-runtime/4.3/raise-error-component-reference) explicitly throws a Mule error to trigger error handling. The detected type and description attributes identify the error being raised.",
+            "recommendation":"Use Workato's [Stop job action](https://docs.workato.com/recipes/error-handling.html#stop-job) to halt a recipe and mark it as failed with a custom error message, or raise an error inside an Error monitor block to route to specific error handling logic."
+        },
+        {
+            "component": "idempotent-message-filter",
+            "note":"The [Idempotent Message Filter](https://docs.mulesoft.com/mule-runtime/3.9/routers-and-filtering) prevents duplicate messages from being processed by storing and checking message IDs. The detected idExpression attribute identifies which field is used as the deduplication key.",
+            "recommendation":"Review the idExpression attribute to determine the deduplication key. If the trigger supports a native deduplication key (e.g., Salesforce record ID, webhook event ID), configure it on the Workato trigger directly. For custom deduplication logic, use [Lookup Tables](https://docs.workato.com/features/lookup-tables.html) to store and check processed record IDs."
+        },
+        {
+            "component": "watermark",
+            "note":"The [Watermark component](https://docs.mulesoft.com/mule-runtime/3.9/poll-reference#watermarks) tracks the last successfully processed record position (cursor) for incremental data synchronisation. The detected variable and defaultExpression attributes show the cursor field and its initial value.",
+            "recommendation":"Most native Workato connectors with polling triggers handle watermarking automatically via a built-in 'since' cursor (e.g., 'New/updated records since last run'). If a custom watermark is required, use [Lookup Tables](https://docs.workato.com/features/lookup-tables.html) to store and retrieve the cursor value between recipe runs."
+        },
+        {
+            "component": "flow-ref",
+            "note":"The [Flow Reference component](https://docs.mulesoft.com/mule-runtime/4.3/flow-ref-about) invokes another flow or sub-flow within the same Mule application synchronously.",
+            "recommendation":"Use [Callable recipes](https://docs.workato.com/features/callable-recipes.html) to implement sub-flow patterns. Callable recipes can be invoked synchronously from a parent recipe, passing input parameters and receiving output — equivalent to a flow-ref calling a sub-flow."
+        },
+        {
+            "component": "validation:",
+            "note":"The [Validation module](https://docs.mulesoft.com/mule-runtime/4.3/validation-connector) provides assertions and validators to ensure data meets expected conditions before processing.",
+            "recommendation":"Use Workato's [conditional action (IF/ELSE)](https://docs.workato.com/recipes/conditions.html) to implement validation logic. For API input validation, define the expected schema on the [API Platform endpoint](https://docs.workato.com/api-management.html). For critical failures, combine with a Stop job action."
+        },
+        {
+            "component": "secure-properties:",
+            "note":"The [Secure Properties module](https://docs.mulesoft.com/mule-runtime/4.3/secure-configuration-properties) encrypts sensitive configuration values such as credentials and API keys in property files.",
+            "recommendation":"Use [Workato Connections](https://docs.workato.com/connections.html) to store credentials securely — connection values are encrypted at rest and never exposed in recipe logs. For non-credential config values, use [Account properties](https://docs.workato.com/features/account-properties.html) which support environment-level configuration."
+        },
+        {
+            "component": "oauth2-provider:",
+            "note":"The [OAuth2 Provider module](https://docs.mulesoft.com/oauth-module/1.0/) configures a Mule application to act as an OAuth2 authorization server or to validate inbound OAuth2 tokens.",
+            "recommendation":"Use [API Platform's security policies](https://docs.workato.com/api-mgmt/calling-apis.html#client-authorization) to enforce OAuth2 token validation on API endpoints. Workato supports JWT and OAuth2 client credential validation as an API gateway policy."
         }
     ]
 }
