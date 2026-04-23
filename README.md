@@ -4,9 +4,63 @@ A command-line tool that analyses MuleSoft application projects and generates mi
 
 It parses Mule 3 and Mule 4 XML configuration files, extracts flows, components, DataWeave transformation scripts, and connector configurations, then maps them to equivalent Workato capabilities with specific migration recommendations.
 
+**v2.0.0** adds workspace mode for analysing an entire portfolio of Mule apps at once, with cross-app dependency graph generation.
+
+## Usage
+
+### Single App
+
+```bash
+./mule-app-analyser-{version}-{platform} -p /path/to/mule/project/root
+```
+
+The tool auto-detects the Mule version by checking for `src/main/app/` (Mule 3) or `src/main/mule/` (Mule 4).
+
+### Workspace (Multi-App)
+
+```bash
+./mule-app-analyser-{version}-{platform} -workspace /path/to/workspace/root
+```
+
+Recursively discovers all Mule 3 and Mule 4 apps under the workspace root, analyses each one, and generates an aggregated overall report with a cross-app dependency graph.
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `-p <path>` | — | Single-app mode: path to Mule project root |
+| `-workspace <dir>` | — | Workspace mode: path to directory containing multiple Mule apps |
+| `-output <dir>` | `./reports` | Root directory for all report output |
+| `-dependencies` | `true` | Build cross-app dependency graph (workspace mode only) |
+| `-min-confidence <0-100>` | `20` | Minimum confidence score to include a dependency edge |
+
+### Examples
+
+```bash
+# Single app — macOS ARM
+./releases/v2.0.0/mule-app-analyser-v2.0.0-osx-arm64 -p ~/projects/my-mule-api/
+
+# Single app — macOS Intel
+./releases/v2.0.0/mule-app-analyser-v2.0.0-osx-amd64 -p ~/projects/my-mule-api/
+
+# Single app — Linux
+./releases/v2.0.0/mule-app-analyser-v2.0.0-linux -p ~/projects/my-mule-api/
+
+# Single app — Windows
+mule-app-analyser-v2.0.0-win.exe -p C:\projects\my-mule-api\
+
+# Workspace — analyse all apps in a directory
+./releases/v2.0.0/mule-app-analyser-v2.0.0-osx-arm64 -workspace ~/projects/mule-workspace/
+
+# Workspace — higher confidence threshold, custom output dir
+./releases/v2.0.0/mule-app-analyser-v2.0.0-osx-arm64 -workspace ~/projects/mule-workspace/ -output ~/reports -min-confidence 50
+```
+
 ## Output
 
-Three report files are generated in a `reports/` directory:
+### Single App
+
+Three report files are generated in the `-output` directory:
 
 | File | Format | Use |
 |---|---|---|
@@ -14,40 +68,61 @@ Three report files are generated in a `reports/` directory:
 | `report-{project}.md` | Markdown | Human-readable assessment |
 | `report-{project}.html` | HTML | Print/share-ready formatted report |
 
+### Workspace
+
+Reports are organised by format under the output root:
+
+```
+reports/
+├── json/
+│   ├── apps/{app-name}/raw-analysis.json   # Per-app machine-readable data
+│   └── workspace/
+│       ├── index.json                       # App inventory with status and paths
+│       ├── overall-report.json              # Aggregated stats and dependency graph
+│       └── dependency-graph.json            # Weighted cross-app dependency edges
+├── md/
+│   ├── apps/{app-name}/report.md           # Per-app Markdown report
+│   └── workspace/overall-report.md         # Workspace summary in Markdown
+└── html/
+    ├── apps/{app-name}/report.html         # Per-app HTML report
+    └── workspace/overall-report.html       # Workspace summary in HTML
+```
+
 ### Report Contents
 
+**Per-app reports** include:
+- **App metadata** — Maven group/artifact/version, Mule version
+- **RAML info** — API title, version, and base URI (if present)
 - **Flow manifest** — all flows, sub-flows, and batch jobs with step counts and complexity ratings
 - **Flow details** — component hierarchy with extracted configuration attributes and DataWeave transform targets shown inline
 - **DataWeave Transformations** — all `%dw 2.0` scripts extracted verbatim, organised by flow and output target (`payload`, `variable:name`)
+- **Inbound/outbound interfaces** — detected endpoints by protocol (HTTP, JMS, Kafka, SQS, SFTP, AMQP, etc.)
 - **Component list** — every unique Mule component detected across all XML files
 - **Configurations** — all global connector configurations (`*-config` elements) and their attributes
-- **Migration recommendations** — per-component Workato guidance, including a **Detected Config** row showing the actual configuration found (cron expression, SQL, retry settings, etc.)
+- **Migration recommendations** — per-component Workato guidance, including a **Detected Config** row showing the actual configuration found
 
-## Usage
+**Workspace overall report** additionally includes:
+- Executive summary table across all apps
+- Per-app summary with Mule version, flow counts, complexity, and detected protocols
+- Dependency graph table showing cross-app connections with confidence scores
+- Mermaid diagram for visual dependency relationships
+- Hotspot list — apps ranked by total dependency edge count
 
-```
-./mule-app-analyser-{version}-{platform} -p /path/to/mule/project/root
-```
+## Cross-App Dependency Detection
 
-The tool auto-detects the Mule version by checking for `src/main/app/` (Mule 3) or `src/main/mule/` (Mule 4).
+In workspace mode the linker analyses inbound and outbound interfaces across all apps and builds a weighted dependency graph.
 
-### Example
+Confidence scoring aggregates multiple evidence types:
 
-```bash
-# macOS ARM
-./releases/v1.1.0/mule-app-analyser-v1.1.0-osx-arm64 -p ~/projects/my-mule-api/
+| Evidence | Examples |
+|---|---|
+| Config-ref matching | Config reference names containing another app's artifact ID |
+| Naming patterns | App tokens from Maven artifact ID matched in endpoints |
+| Property resolution | `${property}` placeholders resolved against `.properties` files |
+| RAML base URI | Service endpoints matched across apps |
+| Protocol inference | HTTP, JMS, VM, SQS, Kafka, AMQP endpoint correlation |
 
-# macOS Intel
-./releases/v1.1.0/mule-app-analyser-v1.1.0-osx-amd64 -p ~/projects/my-mule-api/
-
-# Linux
-./releases/v1.1.0/mule-app-analyser-v1.1.0-linux -p ~/projects/my-mule-api/
-
-# Windows
-mule-app-analyser-v1.1.0-win.exe -p C:\projects\my-mule-api\
-```
-
-The binary must be run from the directory that contains the `resources/` folder (i.e. the release directory).
+Confidence levels: **low** (20–49), **medium** (50–79), **high** (80+). Edges below `-min-confidence` are excluded from reports but preserved in `dependency-graph.json` as ignored edges for transparency.
 
 ## Flow Complexity Rating
 
@@ -57,9 +132,36 @@ The binary must be run from the directory that contains the `resources/` folder 
 | Medium | 5–10 steps, or 2–4 transforms |
 | Complex | > 10 steps or ≥ 5 transforms |
 
-Step counts include all steps from referenced sub-flows (merged count), so complexity reflects the true execution depth.
+Step counts include all steps from referenced sub-flows (merged count), so complexity reflects true execution depth.
 
 ## What Gets Extracted
+
+### App Metadata
+
+From `pom.xml` and `mule-artifact.json` / `mule-project.xml`:
+- Maven `groupId`, `artifactId`, `version`
+- Mule runtime version
+
+### RAML
+
+From `src/main/resources/api/*.raml`:
+- API title, version, `baseUri`
+
+### Properties
+
+All `*.properties` files under `src/main/resources/` are loaded and used to resolve `${token}` placeholders found in component values.
+
+### Inbound / Outbound Interfaces
+
+| Protocol | Inbound | Outbound |
+|---|---|---|
+| HTTP | `http:listener` | `http:request` |
+| JMS | `jms:listener` | `jms:publish` |
+| Kafka | `kafka:consumer` | `kafka:publish` |
+| SQS | `sqs:receivemessages` | `sqs:send-message` |
+| SFTP | `sftp:listener` | `sftp:write` |
+| File | `file:listener` | `file:write` |
+| AMQP | `amqp:listener` | `amqp:publish` |
 
 ### Component Attributes
 
@@ -114,13 +216,13 @@ Prerequisites: Go 1.20+
 
 ```bash
 # Tag the version first
-git tag v1.x.x
+git tag v2.x.x
 
-# Build all platforms
-bash build.sh
+# Build all platforms (uses vendored dependencies)
+bash scripts/build.sh
 ```
 
-Binaries and a copy of `resources/` are placed in `releases/v1.x.x/`.
+Binaries are placed in `releases/v2.x.x/`.
 
 ### Dependencies
 
@@ -129,24 +231,19 @@ Binaries and a copy of `resources/` are placed in `releases/v1.x.x/`.
 | `github.com/beevik/etree` | XML parsing |
 | `github.com/gomarkdown/markdown` | Markdown to HTML conversion |
 
-## Project Structure
-
-```
-go-mule-app-analyser/
-├── src/mule-app-analyser/
-│   ├── main.go                  # Core analysis and report generation
-│   └── resources/
-│       ├── dictionary.json      # Mule component → Workato recommendation mappings
-│       └── md.tmpl              # Markdown report template
-├── releases/
-│   └── v1.x.x/                 # Built binaries + resources copy
-├── example-mule-apps/           # Sample Mule 4 projects for testing
-├── build.sh                     # Cross-platform build script
-├── go.mod
-└── go.sum
-```
-
 ## Changelog
+
+### v2.0.0
+- **Workspace mode** (`-workspace`): discover and analyse an entire portfolio of Mule apps in one run
+- **Cross-app dependency graph**: linker correlates inbound/outbound interfaces across apps using config-ref matching, naming patterns, property resolution, RAML base URIs, and protocol inference, with a confidence score per edge
+- **Per-app interface extraction**: detects inbound and outbound endpoints for HTTP, JMS, Kafka, SQS, SFTP, file, and AMQP connectors
+- **App metadata extraction**: reads Maven coordinates from `pom.xml` and Mule version from `mule-artifact.json` / `mule-project.xml`
+- **RAML support**: extracts API title, version, and `baseUri` from RAML files
+- **Property resolution**: loads `.properties` files and resolves `${token}` placeholders in component values
+- **Workspace reports**: overall report with executive summary, per-app table, dependency graph table, Mermaid diagram, and hotspot list
+- **Modular architecture**: refactored from a single file into `internal/analysis`, `internal/discovery`, `internal/linker`, and `internal/report` packages
+- **Vendored dependencies** and updated build script at `scripts/build.sh`
+- Backward compatible: single-app mode (`-p`) unchanged
 
 ### v1.1.0
 - Extracts functional attributes from each component (SQL from `db:*`, cron from `scheduler`, retry config from `until-successful`, etc.)
