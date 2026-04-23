@@ -1,0 +1,65 @@
+# Mule Workspace Analysis Report
+
+**Workspace:** {{ .WorkspaceRoot }}
+**Scanned:** {{ .ScanTimestamp }}
+**Analyser Version:** {{ .AnalyserVersion }}
+
+- - -
+
+## Executive Summary
+
+| Metric | Value |
+|:-------|------:|
+| Apps Analysed | {{ .AppCount }} |
+| Total Flows | {{ .TotalFlows }} |
+| Total DataWeave Transforms | {{ .TotalTransforms }} |
+| Simple Flows | {{ .FlowComplexity.Simple }} |
+| Medium Flows | {{ .FlowComplexity.Medium }} |
+| Complex Flows | {{ .FlowComplexity.Complex }} |
+
+- - -
+<div style="page-break-after: always"></div>
+
+## App Summary
+
+| App | Mule | Flows | Simple | Medium | Complex | Triggers | Inbound | Outbound | Warnings |
+|:----|:----:|------:|-------:|-------:|--------:|---------:|:--------|:---------|:--------:|
+{{ range .Apps }}| {{ .Name }} | {{ .MuleVersion }} | {{ .FlowCount }} | {{ .Simple }} | {{ .Medium }} | {{ .Complex }} | {{ .TriggerCount }} | {{ joinStrings .InboundProtos }} | {{ joinStrings .OutboundProtos }} | {{ .Warnings }} |
+{{ end }}
+
+- - -
+<div style="page-break-after: always"></div>
+
+## Dependency Graph
+{{ if .Graph }}{{ if .Graph.Edges }}
+Minimum confidence threshold: **{{ .Graph.MinConfidence }}**
+
+### Edges
+
+| From | To | Protocol | Confidence | Level |
+|:-----|:---|:--------:|:----------:|:-----:|
+{{ range .Graph.Edges }}| {{ .FromApp }} | {{ .ToApp }} | {{ .Protocol }} | {{ .Confidence }} | {{ .ConfidenceLevel }} |
+{{ end }}
+
+### Dependency Diagram
+
+```mermaid
+graph LR
+{{ range .Graph.Edges }}    {{ mermaidID .FromApp }}["{{ .FromApp }}"] -->|"{{ .Protocol }} / {{ .ConfidenceLevel }}"| {{ mermaidID .ToApp }}["{{ .ToApp }}"]
+{{ end }}```
+{{ else }}
+*No dependency edges found at or above confidence threshold {{ .Graph.MinConfidence }}.*
+{{ end }}{{ else }}
+*Dependency graph not built (requires ≥2 apps and -dependencies flag).*
+{{ end }}
+- - -
+<div style="page-break-after: always"></div>
+
+## Hotspots
+
+### Most Connected Apps (by total edge count)
+
+| App | Outbound | Inbound |
+|:----|:--------:|:-------:|
+{{ range .Hotspots }}| {{ .Name }} | {{ .Outbound }} | {{ .Inbound }} |
+{{ end }}
